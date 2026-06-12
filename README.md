@@ -1,61 +1,189 @@
 # 🏛️ Smart Asset Management Platform (SAMP)
 
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-blue.svg)](https://nodejs.org/)
-[![Framework](https://img.shields.io/badge/framework-Express_4.19.2-purple.svg)](https://expressjs.com/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
+A web-based asset management system developed for the **IIT Roorkee Cultural Council** to streamline the reservation, allocation, issuance, and return of shared cultural resources such as media equipment, lighting systems, audio devices, and stage props.
 
-An enterprise-grade, high-performance web application designed for the **IIT Roorkee Cultural Council (Shared Resource Workspace)**. This platform orchestrates the cataloging, real-time calendar allocation, automated inventory balancing, and secure physical checkout/return lifecycle of high-value cultural assets (media equipment, audio systems, stage props, and lighting grids) across multiple campus sections and clubs.
+The platform enables clubs and students to efficiently request assets while providing administrators with tools for inventory management, approval workflows, and analytics.
 
 ---
 
-## 📑 Table of Contents
-1. [System Architecture & Data Flow](#-system-architecture--data-flow)
-2. [Core Functional Modules](#-core-functional-modules)
-3. [Role-Based Access Control (RBAC) Matrix](#-role-based-access-control-rbac-matrix)
-4. [Deep Dive: Micro-Transaction Storage Engine](#-deep-dive-micro-transaction-storage-engine)
-5. [Complete API Endpoints Catalog](#-complete-api-endpoints-catalog)
-6. [Tech Stack & Prerequisites](#-tech-stack--prerequisites)
-7. [Installation & Local Deployment](#-installation--local-deployment)
-8. [Frontend Design & Interactive Capabilities](#-frontend-design--interactive-capabilities)
-9. [Production Hardening Checklist](#-production-hardening-checklist)
-10. [License](#-license)
+## ✨ Features
+
+### Student / Club Portal
+
+* Browse available assets by category.
+* Check asset availability before booking.
+* Submit reservation requests.
+* View booking history and current reservations.
+* Receive updates on booking status.
+
+### Administrator Portal
+
+* Add, update, archive, and manage assets.
+* Review and approve/reject booking requests.
+* Issue assets during pickup.
+* Process asset returns.
+* Monitor active loans and overdue items.
+* Access analytics dashboards.
+
+### Faculty Advisor Portal
+
+* Review pending administrator requests.
+* Approve or reject administrator access.
 
 ---
 
-## 🏗️ System Architecture & Data Flow
+## 🛠 Tech Stack
 
-SAMP utilizes a decoupled **Monolithic Architecture** combining an Express.js RESTful API backend with a high-performance, single-page reactive HTML5 application. 
+### Backend
+
+* **Node.js**
+* **Express.js**
+* **JSON Web Tokens (JWT)** for authentication
+* **bcryptjs** for password hashing
+
+### Frontend
+
+* **HTML5**
+* **CSS3**
+
+### Additional Libraries
+
+* **Chart.js** – analytics visualizations
+* **Html5-QRCode** – QR code scanning functionality
+* **Font Awesome** – icons
+
+### Data Storage
+
+* JSON-based local storage using `db_store.json`.
+
+---
+
+## 🏗 System Architecture
 
 ```text
-                                  +------------------------------------------+
-                                  |         Vanilla HTML5/CSS3/JS UI         |
-                                  |  (Chart.js, Html5-QRCode, FontAwesome)   |
-                                  +---------------------+--------------------+
-                                                        |
-                                            HTTPS REST Operations / JSON
-                                                        v
-                                  +---------------------+--------------------+
-                                  |          Express.js Engine               |
-                                  |           (Port Line: 2026)              |
-                                  +--+------------------+-----------------+--+
-                                     |                  |                 |
-                                     v                  v                 v
-                              [/api/auth]         [/api/assets]     [/api/bookings]
-                                     |                  |                 |
-                                     +------------------+-----------------+
-                                                        |
-                                           Internal Middleware Pipeline
-                                        (JWT Authorization & RBAC Evaluator)
-                                                        |
-                                                        v
-                                  +---------------------+--------------------+
-                                  |     JavaScript Memory Proxy Layer        |
-                                  |    (Interceptors for Array Mutations)    |
-                                  +---------------------+--------------------+
-                                                        |
-                                              Instant Sync Hooks
-                                                        v
-                                  +---------------------+--------------------+
-                                  |      Flat JSON Storage File Ledger       |
-                                  |            (`db_store.json`)             |
-                                  +------------------------------------------+
+Frontend (HTML/CSS/JavaScript)
+            │
+            ▼
+     Express REST API
+            │
+            ▼
+ Authentication & RBAC
+            │
+            ▼
+   Business Logic Layer
+            │
+            ▼
+   JSON File Persistence
+```
+
+---
+
+## 👥 User Roles
+
+| Feature                | Student / Club | Admin | Faculty Advisor |
+| ---------------------- | -------------- | ----- | --------------- |
+| View Assets            | ✅              | ✅     | ❌               |
+| Check Availability     | ✅              | ✅     | ❌               |
+| Request Bookings       | ✅              | ❌     | ❌               |
+| View Own Bookings      | ✅              | ❌     | ❌               |
+| Manage Assets          | ❌              | ✅     | ❌               |
+| Approve Bookings       | ❌              | ✅     | ❌               |
+| Issue/Return Assets    | ❌              | ✅     | ❌               |
+| Approve Admin Requests | ❌              | ❌     | ✅               |
+| View Analytics         | ❌              | ✅     | ❌               |
+
+---
+
+## 📦 Key Modules
+
+### Asset Management
+
+* Maintain inventory records.
+* Track available quantities.
+* Archive unused assets.
+
+### Booking System
+
+* Submit booking requests.
+* Prevent over-allocation of resources.
+* Manage approval workflows.
+
+### QR-Based Verification
+
+* Generate QR codes for quick verification during pickup and return processes.
+
+### Analytics Dashboard
+
+* Monitor asset utilization.
+* Track active reservations.
+* Identify overdue returns.
+
+---
+
+## 📁 Project Structure
+
+```text
+.
+├── server.js
+├── db.js
+├── db_store.json
+├── package.json
+├── public/
+│   ├── index.html
+│   ├── styles.css
+│   └── script.js
+└── README.md
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+* Node.js (v18 or later)
+* npm
+
+### Installation
+
+Clone the repository:
+
+```bash
+git clone <repository-url>
+cd <repository-folder>
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the application:
+
+```bash
+node server.js
+```
+
+The application will run at:
+
+```text
+http://localhost:2026
+```
+
+---
+
+## 🔐 Security Features
+
+* Password hashing using bcrypt.
+* JWT-based authentication.
+* Role-Based Access Control (RBAC).
+* Booking validation to prevent double allocation.
+
+---
+
+## 👨‍💻 Developed For
+
+**IIT Roorkee Cultural Council**
+
+Designed to improve the management and utilization of shared cultural assets across campus organizations.
