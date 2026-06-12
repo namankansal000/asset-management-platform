@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Asset Management Platform</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="styles.css"> </head>
+<body>
+
+  <div id="toast-container" class="toast-overlay"></div>
+
+  <div id="auth-screen" class="auth-viewport">
+    <div class="auth-portal-card">
+      <div class="auth-header">
+        <div class="auth-logo"><i class="fa-solid fa-graduation-cap"></i></div>
+        <h2>IIT Roorkee Cultural Council</h2>
+        <h3 id="auth-title">Asset Management Login</h3>
+      </div>
+      
+      <form id="login-form" class="portal-form">
+        <div class="form-group">
+          <label>Campus Email</label>
+          <input type="email" id="login-email" required placeholder="name@iitr.ac.id">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="login-password" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">Log In</button>
+        <p class="auth-toggle-text">
+          New account? <a href="#" onclick="toggleAuthMode(true)">Register here</a>
+        </p>
+      </form>
+
+      <form id="register-form" class="portal-form hidden">
+        <div class="form-group">
+          <label>Full Name / Club Section Name</label>
+          <input type="text" id="reg-name" required placeholder="e.g., Cinematic Section">
+        </div>
+        <div class="form-group">
+          <label>Campus Email</label>
+          <input type="email" id="reg-email" required placeholder="e.g., drama@iitr.ac.id">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="reg-password" required placeholder="••••••••">
+        </div>
+        <div class="form-group">
+          <label>Account Type</label>
+          <select id="register-role" onchange="toggleAdminSecurity()" class="portal-select-full">
+            <option value="consumer">Student / Consumer</option>
+            <option value="pending_admin">Request Admin Access</option>
+          </select>
+        </div>
+
+        <div id="admin-security-vault" class="security-vault hidden">
+          <label class="vault-label"><i class="fa-solid fa-lock"></i> Faculty Authorization Key</label>
+          <p class="vault-hint">Step 1 of 2: Enter authorization key. If valid, your request will be routed to the Faculty Advisor.</p>
+          <input type="password" id="admin-secret-key" placeholder="Enter secret passcode...">
+        </div>
+
+        <button type="submit" class="btn btn-success btn-full">Create Account</button>
+        <p class="auth-toggle-text">
+          Already have an account? <a href="#" onclick="toggleAuthMode(false)">Log in here</a>
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <div id="app-screen" class="app-viewport hidden">
+    <div class="app-layout">
+      
+      <aside class="portal-sidebar">
+        <div class="sidebar-top">
+          <div class="portal-avatar-icon"><i class="fa-solid fa-building-columns"></i></div>
+        </div>
+        <nav class="sidebar-nav">
+          <a href="#" class="nav-link active" data-tooltip="Dashboard"><i class="fa-solid fa-table-columns"></i></a>
+        </nav>
+        <div class="sidebar-bottom">
+          <button onclick="logout()" class="nav-link-logout" data-tooltip="Sign Out"><i class="fa-solid fa-power-off"></i></button>
+        </div>
+      </aside>
+
+      <main class="main-workspace">
+        
+        <header class="workspace-header">
+          <div class="header-branding">
+            <h1>Smart Asset Management Platform</h1>
+            <p>IIT Roorkee Shared Resource Workspace</p>
+          </div>
+          
+          <div class="header-actions">
+            <div class="notification-wrapper">
+              <button id="notif-btn" onclick="document.getElementById('notif-dropdown').classList.toggle('hidden')" class="notif-trigger">
+                <i class="fa-regular fa-bell"></i>
+                <span id="notif-badge" class="notif-badge hidden">0</span>
+              </button>
+              
+              <div id="notif-dropdown" class="notif-dropdown-pane hidden">
+                <div class="notif-pane-header">Recent Notifications</div>
+                <div id="notif-list" class="notif-pane-list"></div>
+              </div>
+            </div>
+
+            <div class="profile-pill">
+              <span id="user-display"></span>
+            </div>
+          </div>
+        </header>
+
+        <div class="workspace-content-scroller">
+          
+          <div id="faculty-view" class="hidden role-container">
+            <div class="portal-panel panel-accent-purple">
+              <div class="panel-heading">
+                <h3>Admin Access Requests (Faculty Approval Required)</h3>
+              </div>
+              <div class="table-responsive">
+                <table class="portal-table">
+                  <thead>
+                    <tr>
+                      <th>Applicant Name</th>
+                      <th>Campus Email</th>
+                      <th>Application Status</th>
+                      <th class="text-right">Faculty Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="faculty-approval-table"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div id="admin-view" class="hidden role-container">
+            
+            <div class="quick-issue-bar">
+              <div class="quick-issue-info">
+                <h4><i class="fa-solid fa-bolt"></i> Quick Issue Gear</h4>
+                <p>Scan QR pass or enter reference Booking ID directly.</p>
+              </div>
+              <div class="quick-issue-controls">
+                <input type="text" id="quick-scan-input" placeholder="e.g. b_1780...">
+                <button onclick="startScanner()" class="btn btn-secondary-icon"><i class="fa-solid fa-camera"></i> Scan</button>
+                <button onclick="quickIssueBooking()" class="btn btn-success">Issue</button>
+              </div>
+              <div id="qr-reader" class="qr-scanner-camera hidden"></div>
+            </div>
+
+            <div class="metrics-grid">
+              <div class="metric-card card-blue">
+                <span class="metric-title">Total Inventory Items</span>
+                <span id="metric-total" class="metric-num">0</span>
+              </div>
+              <div class="metric-card card-green">
+                <span class="metric-title">Available Pool Size</span>
+                <span id="metric-available" class="metric-num">0</span>
+              </div>
+              <div class="metric-card card-amber">
+                <span class="metric-title">Active Allocations</span>
+                <span id="metric-active" class="metric-num">0</span>
+              </div>
+              <div class="metric-card card-red">
+                <span class="metric-title">Overdue Returns</span>
+                <span id="metric-overdue" class="metric-num">0</span>
+              </div>
+            </div>
+
+            <div class="portal-panel chart-panel">
+              <div class="panel-header-flex">
+                <h3>Asset Utilization & Popularity</h3>
+                <select id="chart-type-selector" onchange="updateChartType()" class="portal-dropdown-filter">
+                  <option value="bar">📊 Bar Chart</option>
+                  <option value="pie">🥧 Pie Chart</option>
+                  <option value="line">📈 Line Graph</option>
+                </select>
+              </div>
+              <div class="chart-canvas-box">
+                <canvas id="analyticsChart"></canvas>
+              </div>
+            </div>
+
+            <div class="workspace-split-grid">
+              <div class="portal-panel split-left">
+                <div class="panel-heading">
+                  <h3>System-Wide Activity & Booking Lifecycle</h3>
+                </div>
+                <div class="table-responsive">
+                  <table class="portal-table">
+                    <thead>
+                      <tr>
+                        <th>User / Section</th>
+                        <th>Asset Item</th>
+                        <th class="text-center">Qty</th>
+                        <th>Timeline Frame</th>
+                        <th>Status</th>
+                        <th class="text-right">Operational Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="admin-bookings-table"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="portal-panel split-right">
+                <div class="panel-heading">
+                  <h3>Inject New Core Asset</h3>
+                </div>
+                <form id="add-asset-form" class="vertical-form">
+                  <div class="form-group">
+                    <label>Asset Name</label>
+                    <input type="text" id="asset-name" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Category Group</label>
+                    <select id="asset-category" class="portal-select">
+                      <option value="Media">Media Equipment</option>
+                      <option value="Lighting">Lighting Assets</option>
+                      <option value="Audio">Audio Infrastructure</option>
+                      <option value="Props">Stage Props & Costumes</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Short Description</label>
+                    <input type="text" id="asset-desc" required>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label>Asset Photograph Log</label>
+                    <input type="hidden" id="asset-image-url">
+                    <div class="webcam-hardware-block">
+                      <div class="webcam-action-buttons">
+                        <button type="button" onclick="startWebcam('webcam-feed', 'capture-btn')" class="btn btn-xs btn-primary-light">
+                          <i class="fa-solid fa-video"></i> Turn On Camera
+                        </button>
+                        <button type="button" id="capture-btn" onclick="captureSnapshot('webcam-feed', 'capture-canvas', 'photo-preview', 'photo-preview-container', 'asset-image-url', 'capture-btn')" class="hidden btn btn-xs btn-success-light">
+                          <i class="fa-solid fa-camera"></i> Take Photo
+                        </button>
+                      </div>
+                      <video id="webcam-feed" autoplay playsinline class="hidden preview-video-box"></video>
+                      <canvas id="capture-canvas" class="hidden"></canvas>
+                      <div id="photo-preview-container" class="hidden preview-img-holder">
+                        <span class="preview-tag-title">Captured Snapshot Preview:</span>
+                        <img id="photo-preview" class="avatar-preview-box">
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Total Structural Allocation Quantity</label>
+                    <input type="number" id="asset-qty" min="1" required>
+                  </div>
+                  <button type="submit" class="btn btn-success btn-full">Save to Global Repository</button>
+                </form>
+              </div>
+            </div>
+
+            <div class="portal-panel">
+              <div class="panel-heading">
+                <h3>Global Inventory Stock Ledger (Edit / Delete Management)</h3>
+              </div>
+              <div class="table-responsive">
+                <table class="portal-table">
+                  <thead>
+                    <tr>
+                      <th>Visual ID</th>
+                      <th>Asset Details</th>
+                      <th>Category</th>
+                      <th class="text-center">Available Stock Pool</th>
+                      <th class="text-center">Total Stock Owned</th>
+                      <th class="text-right">Data Modifications</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-inventory-table"></tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+          <div id="consumer-view" class="hidden role-container">
+            
+            <div class="catalog-filter-toolbar">
+              <h3>Shared Resource Catalog Exploration</h3>
+              <div class="toolbar-search-actions">
+                <div class="search-input-icon-wrapper">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                  <input type="text" id="search-bar" oninput="loadConsumerAssets()" placeholder="Search asset catalog...">
+                </div>
+                <select id="category-filter" onchange="loadConsumerAssets()" class="portal-dropdown-filter">
+                  <option value="">All Categories</option>
+                  <option value="Media">Media Equipment</option>
+                  <option value="Lighting">Lighting Assets</option>
+                  <option value="Audio">Audio Infrastructure</option>
+                  <option value="Props">Stage Props & Costumes</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="assets-grid" class="portal-compact-grid"></div>
+
+            <div class="portal-panel">
+              <div class="panel-header-tabs">
+                <h3>Your Borrowing Lifecycle Timeline Tracking</h3>
+                <div id="history-tabs" class="tab-button-group">
+                  <button onclick="filterHistory('all', this)" class="tab-link active">All Requests</button>
+                  <button onclick="filterHistory('active', this)" class="tab-link">Active Allocations</button>
+                  <button onclick="filterHistory('past', this)" class="tab-link">Past Returns</button>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="portal-table">
+                  <thead>
+                    <tr>
+                      <th>Asset Demanded</th>
+                      <th class="text-center">Quantity</th>
+                      <th>Allocation Interval</th>
+                      <th>Status Tracking</th>
+                      <th class="text-right">Verification Token</th>
+                    </tr>
+                  </thead>
+                  <tbody id="consumer-bookings-table"></tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <footer class="portal-footer">
+          <div class="footer-left">© 2026 <a href="#">Information Management Group</a></div>
+          <div class="footer-right">Powered by <i class="fa-solid fa-cube"></i> <strong>Omniport</strong></div>
+        </footer>
+
+      </main>
+    </div>
+  </div>
+
+  <div id="edit-asset-modal" class="modal-backdrop hidden">
+    <div class="modal-box shadow-panel animate-zoom">
+      <div class="modal-header">
+        <h3>Modify Existing Asset Configuration Parameters</h3>
+        <button onclick="closeEditModal()" class="close-modal-btn">&times;</button>
+      </div>
+      <form id="edit-asset-form" class="vertical-form">
+        <input type="hidden" id="edit-asset-id">
+        <div class="modal-body-padding">
+          <div class="form-group">
+            <label>Asset Name Reference</label>
+            <input type="text" id="edit-asset-name" required>
+          </div>
+          <div class="form-group">
+            <label>Total Architectural Allocation Stock Pool</label>
+            <input type="number" id="edit-asset-qty" min="1" required>
+          </div>
+          
+          <div class="form-group">
+            <label>Replace Catalog Image Log</label>
+            <input type="text" id="edit-asset-image-url" placeholder="Direct network image URL string reference...">
+            <div class="webcam-hardware-block">
+              <div class="webcam-action-buttons">
+                <button type="button" onclick="startWebcam('edit-webcam-feed', 'edit-capture-btn')" class="btn btn-xs btn-primary-light">
+                  <i class="fa-solid fa-video"></i> Open Live Stream
+                </button>
+                <button type="button" id="edit-capture-btn" onclick="captureSnapshot('edit-webcam-feed', 'edit-capture-canvas', 'edit-photo-preview', 'edit-photo-preview-container', 'edit-asset-image-url', 'edit-capture-btn')" class="hidden btn btn-xs btn-success-light">
+                  <i class="fa-solid fa-camera"></i> Take New Photo
+                </button>
+              </div>
+              <video id="edit-webcam-feed" autoplay playsinline class="hidden preview-video-box"></video>
+              <canvas id="edit-capture-canvas" class="hidden"></canvas>
+              <div id="edit-photo-preview-container" class="preview-img-holder block">
+                <span class="preview-tag-title">Current / Captured Snapshot:</span>
+                <img id="edit-photo-preview" class="avatar-preview-box" src="">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer-actions">
+          <button type="button" onclick="closeEditModal()" class="btn btn-gray">Abort Modification</button>
+          <button type="submit" class="btn btn-primary">Save Repository Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="book-modal" class="modal-backdrop hidden"> <div class="modal-box modal-large shadow-panel animate-zoom">
+      <div class="modal-header">
+        <h3 id="book-modal-title">Interactive Scheduling Allocation Calendar Planner</h3>
+        <button onclick="closeBookModal()" class="close-modal-btn">&times;</button>
+      </div>
+      <div class="modal-split-layout">
+        <div class="calendar-engine-side">
+          <div class="calendar-navbar">
+            <span id="calendar-month-year"></span>
+          </div>
+          <div class="calendar-days-header">
+            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+          </div>
+          <div id="calendar-days-grid" class="calendar-days-grid"></div>
+        </div>
+        
+        <div class="calendar-params-side">
+          <div class="form-group">
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">
+              <strong>Start:</strong> <span id="display-start-date">-</span><br>
+              <strong>End:</strong> <span id="display-end-date">-</span>
+            </div>
+            <label>Demanded Allocation Volume Units</label>
+            <input type="number" id="book-quantity" value="1" min="1" oninput="checkRealTimeAvailability()" class="portal-form">
+          </div>
+          <div id="real-time-status-container" class="status-realtime-box hidden"></div>
+          <button id="confirm-booking-btn" onclick="submitBookingRequest()" class="btn btn-primary btn-full" disabled>Lock Reservation Schedule Frame</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="unavailability-modal" class="modal-backdrop hidden">
+    <div class="modal-box shadow-panel animate-zoom">
+      <div class="modal-header">
+        <h3>Log Schedule Bottleneck Unavailability Reason</h3>
+        <button onclick="closeUnavailabilityModal()" class="close-modal-btn">&times;</button>
+      </div>
+      <div class="modal-body-padding">
+        <p class="modal-description-alert" id="unavailability-error-text"></p>
+        <textarea id="unavailability-notice-msg" rows="4" class="portal-textarea" placeholder="Provide reason for rejection..."></textarea>
+      </div>
+      <div class="modal-footer-actions border-top-gray">
+        <button onclick="closeUnavailabilityModal()" class="btn btn-gray">Close Window</button>
+        <button id="reject-notify-btn" class="btn btn-danger">Reject Request & Notify Borrower</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="login-alert-modal" class="modal-backdrop hidden">
+    <div class="modal-box shadow-panel border-top-danger animate-zoom">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-triangle-exclamation text-danger"></i> Action Required</h3>
+      </div>
+      <div class="modal-body-padding">
+        <p class="modal-description-alert">You have important timeline updates regarding your borrowed equipment.</p>
+        <div id="login-alert-content"></div>
+      </div>
+      <div class="modal-footer-actions border-top-gray">
+        <button onclick="document.getElementById('login-alert-modal').classList.add('hidden')" class="btn btn-primary btn-full">Acknowledge Notice</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="qr-modal" class="modal-backdrop hidden">
+    <div class="modal-box shadow-panel text-center animate-zoom">
+      <div class="modal-header">
+        <h3>Physical Handover Verification Token</h3>
+        <button onclick="document.getElementById('qr-modal').classList.add('hidden')" class="close-modal-btn">&times;</button>
+      </div>
+      <div class="modal-body-padding text-center">
+        <p class="qr-explanation-text">Present this unique matrix pass token at the repository physical counter desk to execute item handover checkout release.</p>
+        <div class="qr-render-frame">
+          <img id="qr-code-image" alt="Verification Security Token QR">
+        </div>
+        <div class="qr-token-label-box">
+          <span class="token-title">Booking Identity Token:</span>
+          <code id="qr-booking-id"></code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/api';
+    let userToken = localStorage.getItem('token');
+    let userRole = localStorage.getItem('role');
+    let userName = localStorage.getItem('name');
+    let localStream = null;
+
+    let currentSelectedAssetId = null;
+    let selectedStartDate = null;
+    let selectedEndDate = null;
+    let assetAvailabilityData = {};
+    let adminAnalyticsChart = null;
+    let chartLabels = [];
+    let chartDataPoints = [];
+    let currentConsumerBookings = [];
+
+    // --- SECURE API FETCH WRAPPER ---
+    async function secureFetch(endpoint, options = {}) {
+      if (userToken) {
+        options.headers = options.headers || {};
+        options.headers['Authorization'] = `Bearer ${userToken}`;
+      }
+      try {
+        const response = await fetch(endpoint, options);
+        if (response.status === 401 || response.status === 403) {
+          showToast("Session expired or invalid. Please log in again.", "error");
+          logout(); 
+          throw new Error("Session expired.");
+        }
+        return response;
+      } catch (error) {
+        if (!error.message.includes("Session expired")) throw error;
+      }
+    }
+
+    // --- QR CODE & QUICK ISSUE LOGIC ---
+    function showQRCode(bookingId) {
+      document.getElementById('qr-code-image').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${bookingId}`;
+      document.getElementById('qr-booking-id').innerText = bookingId;
+      document.getElementById('qr-modal').classList.remove('hidden');
+    }
+
+    async function quickIssueBooking() {
+      const input = document.getElementById('quick-scan-input');
+      const bookingId = input.value.trim();
+      if (!bookingId) return showToast('Please scan or enter a Booking ID', 'error');
+
+      try {
+        const res = await secureFetch(`${API_BASE}/bookings/${bookingId}/issue`, { method: 'PATCH' });
+        const data = await res.json();
+        
+        if (res.ok) {
+          showToast(`Success: Gear successfully issued for ${bookingId}!`);
+          input.value = ''; 
+          loadAdminAnalytics(); loadAdminBookings(); loadAdminInventoryTable();
+        } else {
+          showToast(data.error || 'Failed to issue gear.', 'error');
+        }
+      } catch (err) {
+        showToast('Network error while issuing gear.', 'error');
+      }
+    }
+
+    let html5QrcodeScanner;
+    async function startScanner() {
+      const readerDiv = document.getElementById('qr-reader');
+      readerDiv.classList.remove('hidden');
+      readerDiv.innerHTML = ""; 
+
+      try {
+        if (!html5QrcodeScanner) html5QrcodeScanner = new Html5Qrcode("qr-reader");
+        await html5QrcodeScanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: 250 },
+          (decodedText) => {
+            document.getElementById('quick-scan-input').value = decodedText;
+            stopScanner();
+            quickIssueBooking(); 
+          },
+          (errorMessage) => {}
+        );
+      } catch (err) {
+        showToast("Failed to initialize camera. Ensure permissions are granted.", "error");
+        readerDiv.classList.add('hidden');
+      }
+    }
+
+    function stopScanner() {
+      if (html5QrcodeScanner && html5QrcodeScanner.isScanning) {
+        html5QrcodeScanner.stop().then(() => {
+            document.getElementById('qr-reader').classList.add('hidden');
+          }).catch((err) => console.error("Failed to stop scanner cleanly:", err));
+      } else {
+        document.getElementById('qr-reader').classList.add('hidden');
+      }
+    }
+
+    // --- TOAST NOTIFICATION SYSTEM ---
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      const typeClass = type === 'error' ? 'toast-error' : 'toast-success';
+      const icon = type === 'error' ? '⚠️' : '✅';
+      
+      toast.className = `toast-popup ${typeClass} animate-zoom`;
+      toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    // --- AUTHENTICATION ---
+    function toggleAuthMode(showRegister) {
+      if (showRegister) {
+        document.getElementById('login-form').classList.add('hidden');
+        document.getElementById('register-form').classList.remove('hidden');
+        document.getElementById('auth-title').innerText = "Asset Management Registration";
+      } else {
+        document.getElementById('register-form').classList.add('hidden');
+        document.getElementById('login-form').classList.remove('hidden');
+        document.getElementById('auth-title').innerText = "Asset Management Login";
+      }
+    }
+
+    function toggleAdminSecurity() {
+        const role = document.getElementById('register-role').value;
+        const vault = document.getElementById('admin-security-vault');
+        if(role === 'pending_admin') vault.classList.remove('hidden');
+        else vault.classList.add('hidden');
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      try {
+        const res = await secureFetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (data.error) return showToast(data.error, "error");
+        saveSession(data);
+      } catch (err) { showToast('Network error talking to server.', 'error'); }
+    });
+
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value;
+      const email = document.getElementById('reg-email').value;
+      const password = document.getElementById('reg-password').value;
+      const role = document.getElementById('register-role').value;
+      const adminKey = document.getElementById('admin-secret-key').value;
+
+      try {
+        const res = await secureFetch(`${API_BASE}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password, role, adminKey })
+        });
+        
+        const data = await res.json();
+        if (data.error) return showToast(data.error, "error");
+        
+        showToast('Account created successfully! Please log in.');
+        toggleAuthMode(false);
+      } catch (err) { showToast('Network error during registration.', 'error'); }
+    });
+
+    function saveSession(data) {
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('role', data.role);
+      localStorage.setItem('name', data.name);
+      userToken = data.token; userRole = data.role; userName = data.name;
+      initializeSession();
+    }
+
+    function initializeSession() {
+      if (!userToken) return;
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById('app-screen').classList.remove('hidden');
+      document.getElementById('user-display').innerText = `${userName} (${userRole.toUpperCase()})`;
+
+      document.getElementById('admin-view').classList.add('hidden');
+      document.getElementById('consumer-view').classList.add('hidden');
+      if (document.getElementById('faculty-view')) document.getElementById('faculty-view').classList.add('hidden');
+
+      if (userRole === 'faculty') {
+        document.getElementById('faculty-view').classList.remove('hidden');
+        loadFacultyDashboard();
+      } else if (userRole === 'admin') {
+        document.getElementById('admin-view').classList.remove('hidden');
+        loadAdminAnalytics(); loadAdminBookings(); loadAdminInventoryTable();
+      } else {
+        document.getElementById('consumer-view').classList.remove('hidden');
+        loadConsumerAssets(); loadConsumerHistory();
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.reload();
+    }
+
+    // --- FACULTY IMPLEMENTATIONS ---
+    async function loadFacultyDashboard() {
+      try {
+        const res = await secureFetch(`${API_BASE}/users/pending-admins`);
+        const pendingAdmins = await res.json();
+        
+        const tbody = document.getElementById('faculty-approval-table');
+        tbody.innerHTML = pendingAdmins.length === 0 
+          ? `<tr><td colspan="4" style="text-align: center; padding: 16px; color: var(--text-muted);">No pending admin requests.</td></tr>` 
+          : '';
+
+        pendingAdmins.forEach(user => {
+          // FIXED BUG: Removed old Tailwind classes from TR/TD strings
+          tbody.innerHTML += `
+            <tr>
+              <td><strong>${user.name}</strong></td>
+              <td>${user.email}</td>
+              <td><span class="status-badge badge-pending">Pending Review</span></td>
+              <td class="text-right">
+                <button onclick="resolveAdminRequest('${user.id}', 'approve')" class="btn btn-xs btn-success mr-2">Approve</button>
+                <button onclick="resolveAdminRequest('${user.id}', 'reject')" class="btn btn-xs btn-danger">Reject</button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (err) { console.error("Failed to load faculty dashboard.", err); }
+    }
+
+    async function resolveAdminRequest(userId, action) {
+      try {
+        const res = await secureFetch(`${API_BASE}/users/${userId}/resolve-role`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: action })
+        });
+        if (res.ok) {
+          showToast(`Request ${action}d successfully.`);
+          loadFacultyDashboard(); 
+        } else {
+          const data = await res.json();
+          showToast(`Error: ${data.error}`, "error");
+        }
+      } catch (err) { showToast("Network error while resolving user request.", "error"); }
+    }
+
+    // --- ADMIN IMPLEMENTATIONS ---
+    async function loadAdminAnalytics() {
+      try {
+        const res = await secureFetch(`${API_BASE}/analytics/summary`);
+        const data = await res.json();
+        
+        if(data.summaryCards) {
+          document.getElementById('metric-total').innerText = data.summaryCards.totalInventory;
+          document.getElementById('metric-available').innerText = data.summaryCards.availableInventory;
+          document.getElementById('metric-active').innerText = data.summaryCards.activeAllocations;
+          document.getElementById('metric-overdue').innerText = data.summaryCards.overdueAlerts;
+        }
+
+        if(data.popularityChartData) {
+           chartLabels = Object.keys(data.popularityChartData);
+           chartDataPoints = Object.values(data.popularityChartData);
+           const defaultType = document.getElementById('chart-type-selector').value;
+           renderChart(defaultType);
+        }
+      } catch(err) { console.error("Failed to load analytics data", err); }
+    }
+
+    function renderChart(type) {
+      const ctx = document.getElementById('analyticsChart').getContext('2d');
+      if (adminAnalyticsChart) adminAnalyticsChart.destroy();
+
+      adminAnalyticsChart = new Chart(ctx, {
+        type: type,
+        data: {
+          labels: chartLabels,
+          datasets: [{
+            label: 'Total Units Booked',
+            data: chartDataPoints,
+            backgroundColor: ['rgba(103, 58, 183, 0.7)', 'rgba(30, 142, 62, 0.7)', 'rgba(249, 171, 0, 0.7)', 'rgba(217, 48, 37, 0.7)', 'rgba(0, 160, 227, 0.7)'],
+            borderColor: ['rgb(81, 45, 168)', 'rgb(22, 101, 52)', 'rgb(217, 119, 6)', 'rgb(185, 28, 28)', 'rgb(2, 132, 199)'],
+            borderWidth: 1,
+            borderRadius: type === 'bar' ? 4 : 0,
+            fill: type === 'line' ? true : false,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: type === 'pie' } },
+          scales: type !== 'pie' ? { y: { beginAtZero: true, ticks: { stepSize: 1 } } } : {}
+        }
+      });
+    }
+
+    function updateChartType() {
+      const selectedType = document.getElementById('chart-type-selector').value;
+      renderChart(selectedType);
+    }
+
+    async function loadAdminBookings() {
+      const res = await secureFetch(`${API_BASE}/bookings/all`);
+      const bookings = await res.json();
+      const tbody = document.getElementById('admin-bookings-table');
+      tbody.innerHTML = bookings.length === 0 ? `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 16px;">No active tracking records in ledger.</td></tr>` : '';
+      
+      bookings.forEach(b => {
+        // FIXED BUG: Removed old Tailwind classes from Action Buttons
+        let actionButtons = '';
+        if (b.status === 'Pending') {
+          actionButtons = `
+            <button onclick="handleApproval('${b.id}', 'Approve')" class="btn btn-xs btn-success mr-2">Approve</button>
+            <button onclick="handleApproval('${b.id}', 'Reject')" class="btn btn-xs btn-danger">Reject</button>
+          `;
+        } else if (b.status === 'Approved') {
+          actionButtons = `<button onclick="updateStatus('${b.id}', 'issue')" class="btn btn-xs btn-primary">Issue Handover</button>`;
+        } else if (b.status === 'Issued') {
+          actionButtons = `<button onclick="updateStatus('${b.id}', 'return')" class="btn btn-xs btn-warning">Receive Return</button>`;
+        } else {
+          actionButtons = `<span style="font-size:11px; font-weight:bold; color:var(--text-muted);">CLOSED</span>`;
+        }
+
+        let badgeClass = 'badge-pending';
+        if (b.status === 'Approved') badgeClass = 'badge-approved';
+        if (b.status === 'Issued') badgeClass = 'badge-issued';
+        if (b.status === 'Returned') badgeClass = 'badge-returned';
+        if (b.status === 'Rejected') badgeClass = 'badge-rejected';
+
+        tbody.innerHTML += `
+          <tr>
+            <td><strong>${b.userName}</strong></td>
+            <td>${b.assetName}</td>
+            <td class="text-center"><strong>${b.quantity}</strong></td>
+            <td>${b.startDate} to ${b.endDate}</td>
+            <td><span class="status-badge ${badgeClass}">${b.status}</span></td>
+            <td class="text-right">${actionButtons}</td>
+          </tr>
+        `;
+      });
+    }
+
+    async function loadAdminInventoryTable() {
+      const res = await secureFetch(`${API_BASE}/assets`);
+      const assets = await res.json();
+      const tbody = document.getElementById('admin-inventory-table');
+      tbody.innerHTML = '';
+
+      assets.forEach(a => {
+        const visualImg = a.imageUrl 
+          ? `<img src="${a.imageUrl}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-light);">` 
+          : `<div style="width: 40px; height: 40px; background: #e0e0e0; display:flex; align-items:center; justify-content:center; border-radius:4px; font-size:10px; font-weight:bold; color:#757575;">N/A</div>`;
+
+        const escapedName = a.name.replace(/'/g, "\\'");
+        const escapedImg = a.imageUrl ? a.imageUrl.replace(/'/g, "\\'") : '';
+
+        const statusBadge = a.isArchived 
+          ? `<span class="status-badge badge-rejected" style="margin-left:8px;">Archived</span>`
+          : `<span class="status-badge badge-approved" style="margin-left:8px;">Active</span>`;
+
+        const deleteBtn = a.isArchived 
+          ? `<button disabled class="btn btn-xs btn-primary mr-2" style="background:#e0e0e0; color:#757575;">Archived</button>`
+          : `<button onclick="deleteAsset('${a.id}')" class="btn btn-xs btn-danger">Archive</button>`;
+
+        tbody.innerHTML += `
+          <tr class="${a.isArchived ? 'opacity-50' : ''}">
+            <td>${visualImg}</td>
+            <td>
+              <div style="font-weight: 600; display:flex; align-items:center;">${a.name} ${statusBadge}</div>
+              <div style="font-size: 11px; color: var(--text-muted);">${a.description || 'No description added'}</div>
+            </td>
+            <td><span style="background:#f3e5f5; color:var(--primary-dark-purple); font-size:10px; font-weight:700; padding:3px 8px; border-radius:4px;">${a.category}</span></td>
+            <td class="text-center text-success" style="color:var(--state-green); font-weight:700;">${a.availableQuantity}</td>
+            <td class="text-center" style="font-weight:700;">${a.totalQuantity}</td>
+            <td class="text-right">
+              <button onclick="openEditModal('${a.id}', '${escapedName}', ${a.totalQuantity}, '${escapedImg}')" class="btn btn-xs btn-primary mr-2">Edit</button>
+              ${deleteBtn}
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    document.getElementById('add-asset-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {
+        name: document.getElementById('asset-name').value,
+        category: document.getElementById('asset-category').value,
+        description: document.getElementById('asset-desc').value,
+        imageUrl: document.getElementById('asset-image-url').value,
+        totalQuantity: parseInt(document.getElementById('asset-qty').value, 10)
+      };
+
+      try {
+        const res = await secureFetch(`${API_BASE}/assets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Asset item registered successfully!');
+          document.getElementById('add-asset-form').reset();
+          document.getElementById('photo-preview-container').classList.add('hidden');
+          document.getElementById('asset-image-url').value = '';
+          loadAdminAnalytics(); loadAdminBookings(); loadAdminInventoryTable();
+        } else {
+          showToast(`Server Validation Exception: ${data.error}`, "error");
+        }
+      } catch (err) { showToast('Network error communicating with the backend.', "error"); }
+    });
+
+    function openEditModal(id, name, totalQty, imgUrl) {
+      document.getElementById('edit-asset-id').value = id;
+      document.getElementById('edit-asset-name').value = name;
+      document.getElementById('edit-asset-qty').value = totalQty;
+      document.getElementById('edit-asset-image-url').value = imgUrl;
+      const previewImg = document.getElementById('edit-photo-preview');
+      previewImg.src = imgUrl || '';
+      document.getElementById('edit-asset-modal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+      if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
+      document.getElementById('edit-webcam-feed').classList.add('hidden');
+      document.getElementById('edit-capture-btn').classList.add('hidden');
+      document.getElementById('edit-asset-modal').classList.add('hidden');
+    }
+
+    document.getElementById('edit-asset-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('edit-asset-id').value;
+      const name = document.getElementById('edit-asset-name').value;
+      const totalQuantity = parseInt(document.getElementById('edit-asset-qty').value, 10);
+      const imageUrl = document.getElementById('edit-asset-image-url').value;
+
+      try {
+        const res = await secureFetch(`${API_BASE}/assets/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, totalQuantity, imageUrl })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast("Repository changes saved successfully.");
+          closeEditModal();
+          loadAdminAnalytics(); loadAdminBookings(); loadAdminInventoryTable();
+        } else {
+          showToast(`Modification Aborted: ${data.error}`, "error");
+        }
+      } catch (err) { showToast('Network error.', "error"); }
+    });
+
+    async function deleteAsset(id) {
+      if (!confirm("Are you certain you wish to purge this asset record?")) return;
+      try {
+        const res = await secureFetch(`${API_BASE}/assets/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (res.ok) {
+          showToast("Asset record erased successfully.");
+          loadAdminAnalytics(); loadAdminBookings(); loadAdminInventoryTable();
+        } else { showToast(`Purge Rejected: ${data.error}`, "error"); }
+      } catch(err) { showToast('Network error.', "error"); }
+    }
+
+    let activeConflictingBookingId = null;
+    async function handleApproval(id, action, customMessage = null) {
+      try {
+        const res = await secureFetch(`${API_BASE}/bookings/${id}/approval`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, message: customMessage })
+        });
+        const data = await res.json();
+        
+        if (!res.ok) {
+          if (action === 'Approve' && res.status === 400) {
+            openUnavailabilityModal(id, data.error);
+            return;
+          }
+          showToast(data.error || "An error occurred handling approval modification.", "error");
+          return;
+        }
+        
+        closeUnavailabilityModal();
+        if (typeof loadAdminBookings === 'function') { loadAdminBookings(); loadAdminInventoryTable(); }
+      } catch (err) { showToast('Network error evaluating transaction lifecycle.', "error"); }
+    }
+
+    function openUnavailabilityModal(bookingId, errorMessage) {
+      activeConflictingBookingId = bookingId;
+      document.getElementById('unavailability-error-text').innerText = errorMessage;
+      document.getElementById('unavailability-modal').classList.remove('hidden');
+      
+      document.getElementById('reject-notify-btn').onclick = () => {
+        const adminMsg = document.getElementById('unavailability-notice-msg').value;
+        handleApproval(activeConflictingBookingId, 'Reject', adminMsg);
+      };
+    }
+
+    function closeUnavailabilityModal() {
+      document.getElementById('unavailability-modal').classList.add('hidden');
+      activeConflictingBookingId = null;
+    }
+
+    async function updateStatus(id, endpoint) {
+      await secureFetch(`${API_BASE}/bookings/${id}/${endpoint}`, { method: 'PATCH' });
+      loadAdminAnalytics(); loadAdminBookings(); loadAdminInventoryTable();
+    }
+
+    // --- CONSUMER IMPLEMENTATIONS ---
+    async function loadConsumerAssets() {
+      const qSearch = document.getElementById('search-bar').value;
+      const qCat = document.getElementById('category-filter').value;
+      
+      const res = await secureFetch(`${API_BASE}/assets?search=${qSearch}&category=${qCat}`);
+      const assets = await res.json();
+      const grid = document.getElementById('assets-grid');
+      grid.innerHTML = '';
+
+      assets.forEach(a => {
+        const visualImgHeader = a.imageUrl 
+          ? `<img src="${a.imageUrl}" alt="Asset">` 
+          : `<i class="fa-solid fa-boxes-stacked"></i>`;
+        const escapedName = a.name.replace(/'/g, "\\'");
+
+        grid.innerHTML += `
+          <div class="compact-portal-card" onclick="openBookModal('${a.id}', '${escapedName}')">
+            <div class="card-thumbnail-area">${visualImgHeader}</div>
+            <div class="card-details-area">
+              <span class="item-category-tag">${a.category}</span>
+              <h4>${a.name}</h4>
+              <p>${a.availableQuantity} available • ${a.totalQuantity} total pool</p>
+              <span class="action-hint-label"><i class="fa-solid fa-calendar-plus"></i> Click to Book</span>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    async function loadConsumerHistory() {
+      try {
+        const res = await secureFetch(`${API_BASE}/bookings/my-bookings`);
+        currentConsumerBookings = await res.json();
+        processNotificationsAndAlerts(currentConsumerBookings);
+        renderBookingsTable(currentConsumerBookings);
+      } catch (err) { console.error("Failed to load history:", err); }
+    }
+
+    function renderBookingsTable(data) {
+      const tbody = document.getElementById('consumer-bookings-table');
+      tbody.innerHTML = data.length === 0 ? `<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--text-muted);">No matching requests found.</td></tr>` : '';
+      
+      data.forEach(b => {
+        let actionHtml = '';
+        if (b.status === 'Approved') {
+            actionHtml = `<button onclick="showQRCode('${b.id}')" class="btn btn-xs btn-primary btn-full mt-2">🎟️ View Pickup Pass</button>`;
+        }
+
+        let badgeClass = 'badge-pending';
+        if (b.status === 'Approved') badgeClass = 'badge-approved';
+        if (b.status === 'Issued') badgeClass = 'badge-issued';
+        if (b.status === 'Returned') badgeClass = 'badge-returned';
+        if (b.status === 'Rejected') badgeClass = 'badge-rejected';
+
+        tbody.innerHTML += `
+          <tr>
+            <td><strong>${b.assetName}</strong></td>
+            <td class="text-center"><strong>${b.quantity}</strong></td>
+            <td>${b.startDate} to ${b.endDate}</td>
+            <td>
+              <span class="status-badge ${badgeClass}">${b.status}</span>
+              ${b.adminMessage ? `<div style="font-size:10px; background:#fef2f2; color:#991b1b; padding:4px; border-radius:4px; margin-top:6px;">⚠️ Notice: ${b.adminMessage}</div>` : ''}
+            </td>
+            <td>${actionHtml}</td>
+          </tr>
+        `;
+      });
+    }
+
+    function filterHistory(type, btnElement) {
+        // FIXED BUG: Cleanly swap the custom .active CSS class on the tabs
+        const tabs = document.querySelectorAll('#history-tabs button');
+        tabs.forEach(tab => tab.classList.remove('active'));
+        btnElement.classList.add('active');
+
+        let filtered = [];
+        if (type === 'all') filtered = currentConsumerBookings;
+        else if (type === 'active') filtered = currentConsumerBookings.filter(b => ['Pending', 'Approved', 'Issued'].includes(b.status));
+        else if (type === 'past') filtered = currentConsumerBookings.filter(b => ['Returned', 'Rejected'].includes(b.status));
+        renderBookingsTable(filtered); 
+    }
+
+    function processNotificationsAndAlerts(bookings) {
+        const notifList = document.getElementById('notif-list');
+        const notifBadge = document.getElementById('notif-badge');
+        const alertContent = document.getElementById('login-alert-content');
+        const alertModal = document.getElementById('login-alert-modal');
+
+        let notifsHTML = ''; let alertsHTML = '';
+        let notifCount = 0; let urgentCount = 0;
+        const d = new Date();
+        const todayStr = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+
+        bookings.forEach(b => {
+            if (b.status === 'Approved') {
+                notifsHTML += `<div class="notif-item"><span style="color:var(--state-green); font-weight:bold;">Approved:</span> ${b.assetName} is ready for you.</div>`;
+                notifCount++;
+            } else if (b.status === 'Rejected') {
+                notifsHTML += `<div class="notif-item"><span style="color:var(--state-red); font-weight:bold;">Rejected:</span> Request for ${b.assetName} was denied.</div>`;
+                notifCount++;
+            }
+            if (b.status === 'Issued') {
+                const endDate = new Date(b.endDate);
+                const today = new Date(todayStr);
+                const diffDays = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+
+                if (diffDays < 0) {
+                    const msg = `⚠️ OVERDUE: Return ${b.assetName}. Due date was ${b.endDate}.`;
+                    notifsHTML += `<div class="notif-item notif-item-urgent"><strong>${msg}</strong></div>`;
+                    alertsHTML += `<div class="alert-box-error mb-4">${msg}</div>`;
+                    notifCount++; urgentCount++;
+                } else if (diffDays <= 2) { 
+                    const msg = `⏳ UPCOMING: Return ${b.assetName} by ${b.endDate}.`;
+                    notifsHTML += `<div class="notif-item notif-item-warn"><strong>${msg}</strong></div>`;
+                    alertsHTML += `<div class="alert-box-warn mb-4">${msg}</div>`;
+                    notifCount++; urgentCount++;
+                }
+            }
+        });
+
+        if (notifCount > 0) {
+            notifBadge.textContent = notifCount;
+            notifBadge.classList.remove('hidden');
+            notifList.innerHTML = notifsHTML;
+        } else {
+            notifList.innerHTML = '<div style="padding:16px; text-align:center; color:var(--text-muted);">No new notifications</div>';
+        }
+
+        const hasSeenAlerts = sessionStorage.getItem('hasSeenAlerts');
+        if (urgentCount > 0 && !hasSeenAlerts) {
+            alertContent.innerHTML = alertsHTML;
+            alertModal.classList.remove('hidden');
+            sessionStorage.setItem('hasSeenAlerts', 'true'); 
+        }
+    }
+
+    // --- CALENDAR ENGINE ---
+    async function openBookModal(assetId, assetName) {
+      currentSelectedAssetId = assetId;
+      selectedStartDate = null;
+      selectedEndDate = null;
+      document.getElementById('confirm-booking-btn').disabled = true;
+      document.getElementById('real-time-status-container').classList.add('hidden');
+      
+      document.getElementById('book-modal-title').innerText = `Reserve ${assetName}`;
+      document.getElementById('display-start-date').innerText = '-';
+      document.getElementById('display-end-date').innerText = '-';
+
+      const res = await secureFetch(`${API_BASE}/assets/${assetId}/availability`);
+      assetAvailabilityData = await res.json();
+
+      buildInteractiveCalendarGrid();
+      document.getElementById('book-modal').classList.remove('hidden'); /* FIXED BUG */
+    }
+
+    function closeBookModal() {
+      document.getElementById('book-modal').classList.add('hidden'); /* FIXED BUG */
+    }
+
+    function buildInteractiveCalendarGrid() {
+      const grid = document.getElementById('calendar-days-grid');
+      const headerLabel = document.getElementById('calendar-month-year');
+      grid.innerHTML = '';
+
+      const today = new Date();
+      headerLabel.innerText = today.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const startingDayOfWeek = firstDayOfMonth.getDay();
+      
+      for (let padding = 0; padding < startingDayOfWeek; padding++) {
+        grid.innerHTML += `<div></div>`;
+      }
+
+      for (let dayOffset = 0; dayOffset < 30; dayOffset++) {
+        const loopDate = new Date(today);
+        loopDate.setDate(today.getDate() + dayOffset);
+        
+        const dStr = loopDate.toISOString().split('T')[0];
+        const dayAvailability = assetAvailabilityData[dStr] || { status: 'green', availableQty: 0 };
+        const dayNumber = loopDate.getDate();
+
+        // FIXED BUG: Migrated dynamic state color coding from Tailwind to Custom CSS
+        let colorClass = 'cal-day-green';
+        if (dayAvailability.status === 'red') colorClass = 'cal-day-red';
+        else if (dayAvailability.status === 'yellow') colorClass = 'cal-day-yellow';
+
+        if (selectedStartDate && dStr === selectedStartDate) colorClass = 'cal-day-selected';
+        else if (selectedEndDate && dStr === selectedEndDate) colorClass = 'cal-day-selected';
+        else if (selectedStartDate && selectedEndDate && dStr > selectedStartDate && dStr < selectedEndDate) colorClass = 'cal-day-range';
+
+        grid.innerHTML += `
+          <button type="button" onclick="selectCalendarDate('${dStr}')" class="cal-day-btn ${colorClass}">
+            ${dayNumber}
+            <span class="cal-qty-hint">Q:${dayAvailability.availableQty}</span>
+          </button>
+        `;
+      }
+    }
+
+    function selectCalendarDate(dateString) {
+      const dayData = assetAvailabilityData[dateString];
+      if (dayData && dayData.status === 'red') {
+        showToast("This selection node is completely occupied by prioritized bookings.", "error");
+        return;
+      }
+
+      if (!selectedStartDate || (selectedStartDate && selectedEndDate)) {
+        selectedStartDate = dateString;
+        selectedEndDate = null;
+        document.getElementById('display-start-date').innerText = new Date(dateString).toLocaleDateString();
+        document.getElementById('display-end-date').innerText = '-';
+      } else {
+        if (dateString < selectedStartDate) {
+          selectedStartDate = dateString;
+          document.getElementById('display-start-date').innerText = new Date(dateString).toLocaleDateString();
+        } else {
+          selectedEndDate = dateString;
+          document.getElementById('display-end-date').innerText = new Date(dateString).toLocaleDateString();
+        }
+      }
+      buildInteractiveCalendarGrid();
+      if (selectedStartDate && selectedEndDate) checkRealTimeAvailability();
+    }
+
+    async function submitBookingRequest() {
+      if (!selectedStartDate || !selectedEndDate) return showToast("Please select your full borrowing date range.", "error");
+
+      const body = {
+        assetId: currentSelectedAssetId,
+        quantity: parseInt(document.getElementById('book-quantity').value, 10),
+        startDate: selectedStartDate,
+        endDate: selectedEndDate
+      };
+
+      try {
+        const res = await secureFetch(`${API_BASE}/bookings/request`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Your reservation ticket was dispatched successfully!');
+          closeBookModal();
+          loadConsumerAssets(); loadConsumerHistory();
+        } else { showToast(`Reservation Exception: ${data.error}`, "error"); }
+      } catch (err) { showToast('Network interaction breakdown.', "error"); }
+    }
+
+    async function checkRealTimeAvailability() {
+      if (!selectedStartDate || !selectedEndDate || !currentSelectedAssetId) return;
+
+      const requestedQty = parseInt(document.getElementById('book-quantity').value, 10) || 1;
+      const statusDiv = document.getElementById('real-time-status-container');
+      const confirmBtn = document.getElementById('confirm-booking-btn');
+
+      try {
+        const res = await secureFetch(`${API_BASE}/bookings/check-availability?assetId=${currentSelectedAssetId}&startDate=${selectedStartDate}&endDate=${selectedEndDate}`);
+        const data = await res.json();
+
+        statusDiv.classList.remove('hidden');
+
+        // FIXED BUG: Converted dynamic check container injection to match generic app colors
+        if (requestedQty > data.available) {
+          statusDiv.innerHTML = `<div class="alert-box-error">⚠️ Exhaustion: Only ${data.available} units guaranteed available.</div>`;
+          confirmBtn.disabled = true;
+          confirmBtn.innerText = 'Insufficient Stock';
+        } else {
+          let pendingWarning = data.hasPendingRequests ? `<span class="alert-box-warn">Note: Other users have pending requests.</span>` : '';
+          statusDiv.innerHTML = `<div class="alert-box-success">✅ ${data.available} units guaranteed available. ${pendingWarning}</div>`;
+          confirmBtn.disabled = false;
+          confirmBtn.innerText = 'Confirm Reservation Window';
+        }
+      } catch (err) { console.error("Failed to check availability", err); }
+    }
+
+    // --- WEBCAM DYNAMIC HARDWARE ENGINE ---
+    async function startWebcam(videoTagId, buttonTagId) {
+      const video = document.getElementById(videoTagId);
+      const captureBtn = document.getElementById(buttonTagId);
+      try {
+        if (localStream) localStream.getTracks().forEach(track => track.stop());
+        localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+        video.srcObject = localStream;
+        video.classList.remove('hidden');
+        captureBtn.classList.remove('hidden');
+      } catch (err) { showToast("Camera Access Exception.", "error"); }
+    }
+
+    function captureSnapshot(videoTagId, canvasTagId, previewTagId, containerTagId, inputTagId, buttonTagId) {
+      const video = document.getElementById(videoTagId);
+      const canvas = document.getElementById(canvasTagId);
+      const photoPreview = document.getElementById(previewTagId);
+      const previewContainer = document.getElementById(containerTagId);
+      const hiddenInput = document.getElementById(inputTagId);
+      const captureBtn = document.getElementById(buttonTagId);
+
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const base64DataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      hiddenInput.value = base64DataUrl;
+      photoPreview.src = base64DataUrl;
+      previewContainer.classList.remove('hidden');
+
+      if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
+      video.classList.add('hidden'); captureBtn.classList.add('hidden');
+    }
+
+    if (userToken) initializeSession();
+  </script>
+  </body>
+</html>
