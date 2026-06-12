@@ -1,0 +1,19 @@
+##NAMAN KANSAL
+
+To run the Smart Asset Management Platform locally on your Linux machine, follow these steps in order:
+
+STEP 1: INSTALL DEPENDENCIES
+----------------------------
+Navigate to the root directory of your project (where server.js is located) and run:
+npm init -y
+npm install express cors bcryptjs jsonwebtoken
+
+STEP 2: RUN THE APPLICATION
+---------------------------
+Start the server by executing:
+node server.js
+
+STEP 3: ACCESS THE APPLICATION
+------------------------------
+Open your web browser and navigate to:
+http://localhost:2026

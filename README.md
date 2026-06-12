@@ -180,10 +180,3 @@ http://localhost:2026
 * Role-Based Access Control (RBAC).
 * Booking validation to prevent double allocation.
 
----
-
-## 👨‍💻 Developed For
-
-**IIT Roorkee Cultural Council**
-
-Designed to improve the management and utilization of shared cultural assets across campus organizations.
